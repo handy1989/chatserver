@@ -167,13 +167,12 @@ void ChatServer::analyse_cmd(char *buf, char *cmd, char *arg, bool is_logged)
     {
         return ;
     }
-    int cmd_len = sizeof(cmd);
-    int arg_len = sizeof(arg);
     cmd[0] = arg[0] = 0;
     strip(buf);
+    DEBUG("buf after strip: %s\n",  buf);
     if(is_logged && 0 == strcasecmp(buf, "logout"))
     {
-        snprintf(cmd, cmd_len, "%s", buf); 
+        snprintf(cmd, MAX_LINE_LEN, "%s", buf); 
     }
     else if (!is_logged && 0 == strncasecmp(buf, "login ", 6))
     {
@@ -181,18 +180,18 @@ void ChatServer::analyse_cmd(char *buf, char *cmd, char *arg, bool is_logged)
         if (p)
         {
             *p++ = 0;
-            snprintf(arg, arg_len, "%s", strip(p));
+            snprintf(arg, MAX_LINE_LEN, "%s", strip(p));
         }
-        snprintf(cmd, cmd_len, "%s", buf);
+        snprintf(cmd, MAX_LINE_LEN, "%s", buf);
     }
     else if(is_logged && 0 == strcasecmp(buf, "look"))
     {
-        snprintf(cmd, cmd_len, "look");
+        snprintf(cmd, MAX_LINE_LEN, "look");
     }
     else
     {
-        snprintf(cmd, cmd_len, "say");
-        snprintf(arg, arg_len, "%s", buf);
+        snprintf(cmd, MAX_LINE_LEN, "say");
+        snprintf(arg, MAX_LINE_LEN, "%s", buf);
     }
 }
 
