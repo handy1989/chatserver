@@ -6,7 +6,7 @@ using std::string;
 
 int ChatServer::hasUser(const string &name)
 {
-	return s_users.count(name); 
+    return s_users.count(name); 
 }
 
 void ChatServer::addUser(int connfd, const string &name)
@@ -72,7 +72,7 @@ void ChatServer::login(char *arg, bool &is_logged, int connfd, ChatServer *p_ses
         is_logged = true;
     }
     DEBUG("ret_buf[%s]", ret_buf);
-    
+
 }
 
 void ChatServer::broadcase(char *msg, int msg_len)
@@ -215,25 +215,25 @@ void ChatServer::analyse_cmd(char *buf, char *cmd, char *arg, bool is_logged)
 void *ChatServer::talk_thread(void *arg)
 {
     thread_para_t *thread_para = static_cast<thread_para_t *>(arg);
-	ChatServer *p_session = thread_para->p_session;
+    ChatServer *p_session = thread_para->p_session;
     int connfd_index = thread_para->connfd_index;
     int connfd = p_session->connfd_arr[connfd_index];
 
     p_session->increase_thread();
-	char buff[MAX_LINE_LEN];
-	char ret_buf[MAX_LINE_LEN + 50];
-	int msg_len = 0;
-	int ret = 0;
-	ret = send(connfd, "welcom to server!", 100, 0);
-	if (ret < 0)
-	{
-		fprintf(stderr, "send welcom failed!\n");
-		p_session->destroy_connfd(connfd_index);
+    char buff[MAX_LINE_LEN];
+    char ret_buf[MAX_LINE_LEN + 50];
+    int msg_len = 0;
+    int ret = 0;
+    ret = send(connfd, "welcom to server!", 100, 0);
+    if (ret < 0)
+    {
+        fprintf(stderr, "send welcom failed!\n");
+        p_session->destroy_connfd(connfd_index);
         p_session->decrease_thread();
         close(connfd);
         delete thread_para;
-		return (void *)1;	
-	}
+        return (void *)1;	
+    }
     bool is_logged = false;
     char cmd[MAX_LINE_LEN] = "";
     char cmd_arg[MAX_LINE_LEN] = "";
@@ -260,88 +260,88 @@ void *ChatServer::talk_thread(void *arg)
             send(connfd, "cmd error!", 100, 0);
         }
     }
-	close(connfd);
+    close(connfd);
     p_session->removeUser(connfd, user_name);
-	p_session->destroy_connfd(connfd_index);
+    p_session->destroy_connfd(connfd_index);
     p_session->decrease_thread();
     delete thread_para;
 }
 
 int ChatServer::run()
 {
-	if (initSock() != 0)
-	{
-		fprintf(stderr, "initSock failed!\n");
-		return 1;
-	}
-	int connfd = 0;
-	int ret = 0;
+    if (initSock() != 0)
+    {
+        fprintf(stderr, "initSock failed!\n");
+        return 1;
+    }
+    int connfd = 0;
+    int ret = 0;
     thread_para_t *thread_para;
-	while (true)
-	{
-		connfd = accept(listenfd, (struct sockaddr*)NULL, NULL);
-		if (-1 == connfd)
-		{
-			fprintf(stderr, "accept socket error: %s(errno: %d)\n", strerror(errno), errno);
-			continue;
-		}		
-		int connfd_index = get_valid_connfd_index();
-		if (connfd_index >= MAX_THREAD_NUM)
-		{
-			fprintf(stderr, "Too many threads! No larger than %d. Please wait.\n", MAX_THREAD_NUM);
+    while (true)
+    {
+        connfd = accept(listenfd, (struct sockaddr*)NULL, NULL);
+        if (-1 == connfd)
+        {
+            fprintf(stderr, "accept socket error: %s(errno: %d)\n", strerror(errno), errno);
+            continue;
+        }		
+        int connfd_index = get_valid_connfd_index();
+        if (connfd_index >= MAX_THREAD_NUM)
+        {
+            fprintf(stderr, "Too many threads! No larger than %d. Please wait.\n", MAX_THREAD_NUM);
             char tmp_buf[MAX_LINE_LEN];
             snprintf(tmp_buf, MAX_LINE_LEN, "Room is full. No more than %d people. Please wait for a moment.%c%c", MAX_THREAD_NUM, 30, 0);
-	        send(connfd, tmp_buf, strlen(tmp_buf), 0);
-			close(connfd);
-			continue;
-		}
+            send(connfd, tmp_buf, strlen(tmp_buf), 0);
+            close(connfd);
+            continue;
+        }
         thread_para = new thread_para_t;
         thread_para->p_session = this;
         thread_para->connfd_index = connfd_index;
-		DEBUG("in function run connfd_index[%d] connfd[%d]\n", connfd_index, connfd);
-		connfd_arr[connfd_index] = connfd;
-		ret = pthread_create(&thread[connfd_index], NULL, talk_thread, thread_para);
-		if (0 != ret)
-		{
-				fprintf(stderr, "create thread failed!\n");
-                destroy_connfd(connfd_index);
-                delete thread_para;
-				close(connfd);
-		}
-		else
-		{
-			fprintf(stderr, "create thread[%d] success!\n", cur_thread_num);
-		}
-	}
-	fprintf(stderr, "run finished!\n");
-	return 0;
+        DEBUG("in function run connfd_index[%d] connfd[%d]\n", connfd_index, connfd);
+        connfd_arr[connfd_index] = connfd;
+        ret = pthread_create(&thread[connfd_index], NULL, talk_thread, thread_para);
+        if (0 != ret)
+        {
+            fprintf(stderr, "create thread failed!\n");
+            destroy_connfd(connfd_index);
+            delete thread_para;
+            close(connfd);
+        }
+        else
+        {
+            fprintf(stderr, "create thread[%d] success!\n", cur_thread_num);
+        }
+    }
+    fprintf(stderr, "run finished!\n");
+    return 0;
 }
 
 int ChatServer::initSock()
 {
-	int ret = 0;
-	listenfd  = socket(AF_INET, SOCK_STREAM, 0);
-	if (-1 == listenfd)
-	{
-		fprintf(stderr, "create socket error: %s(errno: %d)\n", strerror(errno), errno);
-		return 1;
-	}
-	//init servaddr
-	memset(&servaddr, 0, sizeof(servaddr));
-	servaddr.sin_family = AF_INET;
-	servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	servaddr.sin_port = htons(port);
-	
-	if (-1 == bind(listenfd, (struct sockaddr*)&servaddr, sizeof(servaddr)))
-	{
-		fprintf(stderr, "create socket error: %s(errno: %d)\n", strerror(errno), errno);
-		return 2;	
-	}
-	if (-1 == listen(listenfd, 10))
-	{
-		fprintf(stderr, "listen socket error: %s(errno: %d)\n", strerror(errno), errno);
-		return 3;
-	}
-	fprintf(stderr, "port: %d\ninitSock finished!\n", port);
-	return 0;
+    int ret = 0;
+    listenfd  = socket(AF_INET, SOCK_STREAM, 0);
+    if (-1 == listenfd)
+    {
+        fprintf(stderr, "create socket error: %s(errno: %d)\n", strerror(errno), errno);
+        return 1;
+    }
+    //init servaddr
+    memset(&servaddr, 0, sizeof(servaddr));
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    servaddr.sin_port = htons(port);
+
+    if (-1 == bind(listenfd, (struct sockaddr*)&servaddr, sizeof(servaddr)))
+    {
+        fprintf(stderr, "create socket error: %s(errno: %d)\n", strerror(errno), errno);
+        return 2;	
+    }
+    if (-1 == listen(listenfd, 10))
+    {
+        fprintf(stderr, "listen socket error: %s(errno: %d)\n", strerror(errno), errno);
+        return 3;
+    }
+    fprintf(stderr, "port: %d\ninitSock finished!\n", port);
+    return 0;
 }
