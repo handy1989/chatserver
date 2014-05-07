@@ -6,7 +6,7 @@ using std::string;
 
 int ChatServer::hasUser(const string &name)
 {
-    return s_users.count(name); 
+	return s_users.count(name); 
 }
 
 void ChatServer::addUser(int connfd, const string &name)
@@ -50,7 +50,8 @@ int ChatServer::get_valid_connfd_index()
 void ChatServer::login(char *arg, bool &is_logged, int connfd, ChatServer *p_session, std::string &user_name)
 {
     char ret_buf[MAX_LINE_LEN];
-    //send(connfd, "you're logging", 100, 0);
+    //snprintf(ret_buf, MAX_LINE_LEN, "your're loggin%c%c", 30, 0);
+    //send(connfd, ret_buf, strlen(ret_buf), 0);
     DEBUG("log name[%s]", arg);
     if (is_logged)
     {
@@ -59,22 +60,22 @@ void ChatServer::login(char *arg, bool &is_logged, int connfd, ChatServer *p_ses
     }
     if (hasUser(arg))
     {
-        snprintf(ret_buf, MAX_LINE_LEN, "User[%s] already exits. Please try again.%c", arg, 0);
-        send(connfd, ret_buf, MAX_LINE_LEN, 0);
+        snprintf(ret_buf, MAX_LINE_LEN, "User[%s] already exits. Please try again.%c%c", arg, 30, 0);
+        send(connfd, ret_buf, strlen(ret_buf), 0);
     }
     else
     {
         addUser(connfd, arg);
         user_name = arg;
-        snprintf(ret_buf, MAX_LINE_LEN, "%s joins the room!%c", arg, 0);
-        broadcase(ret_buf);
+        snprintf(ret_buf, MAX_LINE_LEN, "%s joins the room!%c%c", arg, 30, 0);
+        broadcase(ret_buf, strlen(ret_buf));
         is_logged = true;
     }
     DEBUG("ret_buf[%s]", ret_buf);
-
+    
 }
 
-void ChatServer::broadcase(char *msg)
+void ChatServer::broadcase(char *msg, int msg_len)
 {
     int ret = 0;
     if (NULL == msg)
@@ -85,7 +86,7 @@ void ChatServer::broadcase(char *msg)
     {
         if (m_users.count(get_connfd(i)) > 0)
         {
-            ret = send(connfd_arr[i], msg, strlen(msg), 0);
+            ret = send(connfd_arr[i], msg, msg_len, 0);
             if (ret < 0)
             {
                 fprintf(stderr, "send recieved message failed!\n");
@@ -100,7 +101,7 @@ void ChatServer::look(char *arg, bool &is_logged, int connfd, ChatServer *p_sess
     char ret_buf[MAX_LINE_LEN];
     if (!is_logged)
     {    
-        snprintf(ret_buf, MAX_LINE_LEN, "You haven't been logged in. Please login first.%c", 0);
+        snprintf(ret_buf, MAX_LINE_LEN, "You haven't been logged in. Please login using command \"login <name>\" or type \"help\" for help.%c%c", 30, 0);
         int len = strlen(ret_buf);
         DEBUG("ret_buf[%s] len[%d]\n", ret_buf, len);
         send(connfd, ret_buf, strlen(ret_buf), 0);
@@ -108,10 +109,12 @@ void ChatServer::look(char *arg, bool &is_logged, int connfd, ChatServer *p_sess
     else
     {
         string str_ret_buf("user list:");
+        char sep[10];
+        sprintf(sep, "%c", 30); //分隔符ascii=30
         std::set<std::string>::iterator it;
         for (it = s_users.begin(); it != s_users.end(); ++it)
         {
-            str_ret_buf = str_ret_buf + "\n" + *it;
+            str_ret_buf = str_ret_buf + sep + *it;
         }
         send(connfd, str_ret_buf.c_str(), str_ret_buf.size(), 0);
     }
@@ -126,7 +129,7 @@ void ChatServer::say(char *arg, bool &is_logged, int connfd, ChatServer *p_sessi
     int ret = 0;
     if (!is_logged)
     {
-        snprintf(ret_buf, MAX_LINE_LEN, "You haven't been logged in. Please login first.%c", 0);
+        snprintf(ret_buf, MAX_LINE_LEN, "You haven't been logged in. Please login using command \"login <name>\" or type \"help\" for help.%c%c", 30, 0);
         int len = strlen(ret_buf);
         DEBUG("ret_buf[%s] len[%d]\n", ret_buf, len);
         send(connfd, ret_buf, strlen(ret_buf), 0);
@@ -134,9 +137,9 @@ void ChatServer::say(char *arg, bool &is_logged, int connfd, ChatServer *p_sessi
     else
     {
         std::string user_name = m_users[connfd];
-        snprintf(ret_buf, MAX_LINE_LEN, "[%s]%s%c", user_name.c_str(), arg, 0);
+        snprintf(ret_buf, MAX_LINE_LEN, "[%s]%s%c%c", user_name.c_str(), arg, 30, 0);
         DEBUG("ret_buf[%s]\n", ret_buf);
-        p_session->broadcase(ret_buf);
+        p_session->broadcase(ret_buf, strlen(ret_buf));
     }
 }
 
@@ -153,12 +156,22 @@ void ChatServer::logout(char *arg, bool &is_logged, int connfd, ChatServer *p_se
         char ret_buf[MAX_LINE_LEN];
         std::string user = m_users[connfd];
         removeUser(connfd, user);
-        snprintf(ret_buf, MAX_LINE_LEN, "[%s] logged out.%c", user.c_str(), 0);
+        snprintf(ret_buf, MAX_LINE_LEN, "[%s] logged out.%c%c", user.c_str(), 30, 0);
         send(connfd, ret_buf, strlen(ret_buf), 0);
-        snprintf(ret_buf, MAX_LINE_LEN, "[%s] leaves the room!%c", user.c_str(), 0);
-        broadcase(ret_buf);
+        snprintf(ret_buf, MAX_LINE_LEN, "[%s] leaves the room!%c%c", user.c_str(), 30, 0);
+        broadcase(ret_buf, strlen(ret_buf));
         is_logged = false;
     }
+}
+
+void ChatServer::help(char *arg, bool &is_looged, int connfd, ChatServer *p_session, std::string &user_name)
+{
+    char ret_buf[MAX_LINE_LEN];
+    snprintf(ret_buf, MAX_LINE_LEN, 
+            "supported commands:%c\tlogin <name>%c\tlook%c\tlogout%c\thelp%c\tquit%canything else is to send a message%c%c",
+            30, 30, 30, 30, 30, 30, 30, 0
+            );
+    send(connfd, ret_buf, strlen(ret_buf), 0);
 }
 
 void ChatServer::analyse_cmd(char *buf, char *cmd, char *arg, bool is_logged)
@@ -170,7 +183,11 @@ void ChatServer::analyse_cmd(char *buf, char *cmd, char *arg, bool is_logged)
     cmd[0] = arg[0] = 0;
     strip(buf);
     DEBUG("buf after strip: %s\n",  buf);
-    if(is_logged && 0 == strcasecmp(buf, "logout"))
+    if (0 == strcasecmp(buf, "help"))
+    {
+        snprintf(cmd, MAX_LINE_LEN, "%s", buf);
+    }
+    else if(is_logged && 0 == strcasecmp(buf, "logout"))
     {
         snprintf(cmd, MAX_LINE_LEN, "%s", buf); 
     }
@@ -198,25 +215,25 @@ void ChatServer::analyse_cmd(char *buf, char *cmd, char *arg, bool is_logged)
 void *ChatServer::talk_thread(void *arg)
 {
     thread_para_t *thread_para = static_cast<thread_para_t *>(arg);
-    ChatServer *p_session = thread_para->p_session;
+	ChatServer *p_session = thread_para->p_session;
     int connfd_index = thread_para->connfd_index;
     int connfd = p_session->connfd_arr[connfd_index];
 
     p_session->increase_thread();
-    char buff[MAX_LINE_LEN];
-    char ret_buf[MAX_LINE_LEN + 50];
-    int msg_len = 0;
-    int ret = 0;
-    ret = send(connfd, "welcom to server!", 100, 0);
-    if (ret < 0)
-    {
-        fprintf(stderr, "send welcom failed!\n");
-        p_session->destroy_connfd(connfd_index);
+	char buff[MAX_LINE_LEN];
+	char ret_buf[MAX_LINE_LEN + 50];
+	int msg_len = 0;
+	int ret = 0;
+	ret = send(connfd, "welcom to server!", 100, 0);
+	if (ret < 0)
+	{
+		fprintf(stderr, "send welcom failed!\n");
+		p_session->destroy_connfd(connfd_index);
         p_session->decrease_thread();
         close(connfd);
         delete thread_para;
-        return (void *)1;	
-    }
+		return (void *)1;	
+	}
     bool is_logged = false;
     char cmd[MAX_LINE_LEN] = "";
     char cmd_arg[MAX_LINE_LEN] = "";
@@ -243,88 +260,88 @@ void *ChatServer::talk_thread(void *arg)
             send(connfd, "cmd error!", 100, 0);
         }
     }
-    close(connfd);
+	close(connfd);
     p_session->removeUser(connfd, user_name);
-    p_session->destroy_connfd(connfd_index);
+	p_session->destroy_connfd(connfd_index);
     p_session->decrease_thread();
     delete thread_para;
 }
 
 int ChatServer::run()
 {
-    if (initSock() != 0)
-    {
-        fprintf(stderr, "initSock failed!\n");
-        return 1;
-    }
-    int connfd = 0;
-    int ret = 0;
+	if (initSock() != 0)
+	{
+		fprintf(stderr, "initSock failed!\n");
+		return 1;
+	}
+	int connfd = 0;
+	int ret = 0;
     thread_para_t *thread_para;
-    while (true)
-    {
-        connfd = accept(listenfd, (struct sockaddr*)NULL, NULL);
-        if (-1 == connfd)
-        {
-            fprintf(stderr, "accept socket error: %s(errno: %d)\n", strerror(errno), errno);
-            continue;
-        }		
-        int connfd_index = get_valid_connfd_index();
-        if (connfd_index >= MAX_THREAD_NUM)
-        {
-            fprintf(stderr, "Too many threads! No larger than %d. Please wait.\n", MAX_THREAD_NUM);
+	while (true)
+	{
+		connfd = accept(listenfd, (struct sockaddr*)NULL, NULL);
+		if (-1 == connfd)
+		{
+			fprintf(stderr, "accept socket error: %s(errno: %d)\n", strerror(errno), errno);
+			continue;
+		}		
+		int connfd_index = get_valid_connfd_index();
+		if (connfd_index >= MAX_THREAD_NUM)
+		{
+			fprintf(stderr, "Too many threads! No larger than %d. Please wait.\n", MAX_THREAD_NUM);
             char tmp_buf[MAX_LINE_LEN];
-            snprintf(tmp_buf, MAX_LINE_LEN, "Room is full. No more than %d people. Please wait for a moment", MAX_THREAD_NUM);
-            send(connfd, tmp_buf, MAX_LINE_LEN, 0);
-            close(connfd);
-            continue;
-        }
+            snprintf(tmp_buf, MAX_LINE_LEN, "Room is full. No more than %d people. Please wait for a moment.%c%c", MAX_THREAD_NUM, 30, 0);
+	        send(connfd, tmp_buf, strlen(tmp_buf), 0);
+			close(connfd);
+			continue;
+		}
         thread_para = new thread_para_t;
         thread_para->p_session = this;
         thread_para->connfd_index = connfd_index;
-        DEBUG("in function run connfd_index[%d] connfd[%d]\n", connfd_index, connfd);
-        connfd_arr[connfd_index] = connfd;
-        ret = pthread_create(&thread[connfd_index], NULL, talk_thread, thread_para);
-        if (0 != ret)
-        {
-            fprintf(stderr, "create thread failed!\n");
-            destroy_connfd(connfd_index);
-            delete thread_para;
-            close(connfd);
-        }
-        else
-        {
-            fprintf(stderr, "create thread[%d] success!\n", cur_thread_num);
-        }
-    }
-    fprintf(stderr, "run finished!\n");
-    return 0;
+		DEBUG("in function run connfd_index[%d] connfd[%d]\n", connfd_index, connfd);
+		connfd_arr[connfd_index] = connfd;
+		ret = pthread_create(&thread[connfd_index], NULL, talk_thread, thread_para);
+		if (0 != ret)
+		{
+				fprintf(stderr, "create thread failed!\n");
+                destroy_connfd(connfd_index);
+                delete thread_para;
+				close(connfd);
+		}
+		else
+		{
+			fprintf(stderr, "create thread[%d] success!\n", cur_thread_num);
+		}
+	}
+	fprintf(stderr, "run finished!\n");
+	return 0;
 }
 
 int ChatServer::initSock()
 {
-    int ret = 0;
-    listenfd  = socket(AF_INET, SOCK_STREAM, 0);
-    if (-1 == listenfd)
-    {
-        fprintf(stderr, "create socket error: %s(errno: %d)\n", strerror(errno), errno);
-        return 1;
-    }
-    //init servaddr
-    memset(&servaddr, 0, sizeof(servaddr));
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    servaddr.sin_port = htons(port);
-
-    if (-1 == bind(listenfd, (struct sockaddr*)&servaddr, sizeof(servaddr)))
-    {
-        fprintf(stderr, "create socket error: %s(errno: %d)\n", strerror(errno), errno);
-        return 2;	
-    }
-    if (-1 == listen(listenfd, 10))
-    {
-        fprintf(stderr, "listen socket error: %s(errno: %d)\n", strerror(errno), errno);
-        return 3;
-    }
-    fprintf(stderr, "port: %d\ninitSock finished!\n", port);
-    return 0;
+	int ret = 0;
+	listenfd  = socket(AF_INET, SOCK_STREAM, 0);
+	if (-1 == listenfd)
+	{
+		fprintf(stderr, "create socket error: %s(errno: %d)\n", strerror(errno), errno);
+		return 1;
+	}
+	//init servaddr
+	memset(&servaddr, 0, sizeof(servaddr));
+	servaddr.sin_family = AF_INET;
+	servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	servaddr.sin_port = htons(port);
+	
+	if (-1 == bind(listenfd, (struct sockaddr*)&servaddr, sizeof(servaddr)))
+	{
+		fprintf(stderr, "create socket error: %s(errno: %d)\n", strerror(errno), errno);
+		return 2;	
+	}
+	if (-1 == listen(listenfd, 10))
+	{
+		fprintf(stderr, "listen socket error: %s(errno: %d)\n", strerror(errno), errno);
+		return 3;
+	}
+	fprintf(stderr, "port: %d\ninitSock finished!\n", port);
+	return 0;
 }

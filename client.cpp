@@ -1,3 +1,4 @@
+#include <vector>
 #include <pthread.h>
 #include <arpa/inet.h>
 #include <unistd.h>
@@ -8,20 +9,24 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include "strtools.h"
 
 #define MAX_LINE_LEN 4096
-#define __DEBUG__ 1
+#define __DEBUG__ 0
 #define DEBUG(argv, format...)do{\
     if (__DEBUG__){\
         fprintf(stderr, argv, ##format);\
     }\
 }while(0)
 
+using std::vector;
+
 void *recv(void *arg)
 {
     int sockfd = *(int *)arg;
     int n = 0;
     char recv_line[MAX_LINE_LEN];
+    vector<char *> list;
     while (true)
     {
         n = recv(sockfd, recv_line, MAX_LINE_LEN, 0);
@@ -31,8 +36,16 @@ void *recv(void *arg)
             break;
         }
         recv_line[n] = 0;
-        printf(">>%s\n", recv_line);
-        fflush(stdout);
+        split(list, recv_line, 30);
+        DEBUG("recieve bytes[%d] records[%d]\n", n, static_cast<int>(list.size()));
+        for(int i = 0; i < list.size(); ++i)
+        {
+            if (strlen(list[i]) > 0)
+            {
+                printf(">>%s\n", list[i]);
+                fflush(stdout);
+            }
+        }
     }
 }
 
@@ -95,13 +108,10 @@ int main(int argc, char *argv[])
     {
         return 1;
     }
-
     pthread_t thread_recv, thread_send;
     pthread_create(&thread_recv, NULL, recv, &sockfd);
     pthread_create(&thread_send, NULL, send, &sockfd);
-    pthread_join(thread_recv, NULL);
     pthread_join(thread_send, NULL);
-
     close(sockfd);
     return 0;
 }
