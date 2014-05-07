@@ -1,6 +1,6 @@
 chatserver
 ==========
-usage:
+### usage:
     # 启动Server程序，参数为端口号
     ./chatserver <port>   
     #启动client程序，参数为Server所在机器的ip和Server监听的端口号
