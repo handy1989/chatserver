@@ -36,6 +36,7 @@ void *recv(void *arg)
             break;
         }
         recv_line[n] = 0;
+        DEBUG("revline:%s\n", recv_line);
         split(list, recv_line, 30);
         DEBUG("recieve bytes[%d] records[%d]\n", n, static_cast<int>(list.size()));
         for(int i = 0; i < list.size(); ++i)
@@ -108,6 +109,7 @@ int main(int argc, char *argv[])
     {
         return 1;
     }
+    DEBUG("initSock finished! sockfd[%d]\n", sockfd);
     pthread_t thread_recv, thread_send;
     pthread_create(&thread_recv, NULL, recv, &sockfd);
     pthread_create(&thread_send, NULL, send, &sockfd);

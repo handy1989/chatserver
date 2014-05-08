@@ -1,0 +1,69 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+CHATSERVER_H	./chatserver.h	2;"	d
+ChatServer	./chatserver.h	/^        ChatServer(int p) : port(p), cur_thread_num(0)$/;"	f	class:ChatServer
+ChatServer	./chatserver.h	/^class ChatServer$/;"	c
+DEBUG	./chatserver.h	26;"	d
+DEBUG	./client.cpp	16;"	d	file:
+LIBS	./Makefile	/^LIBS=-lpthread$/;"	m
+MAX_LINE_LEN	./chatserver.h	23;"	d
+MAX_LINE_LEN	./client.cpp	14;"	d	file:
+MAX_THREAD_NUM	./chatserver.h	22;"	d
+OBJECT	./Makefile	/^OBJECT=chatserver client$/;"	m
+STRTOOLS_H_	./strtools.h	2;"	d
+__DEBUG__	./chatserver.h	25;"	d
+__DEBUG__	./client.cpp	15;"	d	file:
+_thread_para_t	./chatserver.h	/^typedef struct _thread_para_t$/;"	s
+addConnfd	./chatserver.h	/^        inline void addConnfd(int connfd)$/;"	f	class:ChatServer
+addUser	./chatserver.cpp	/^void ChatServer::addUser(int connfd, const string &name)$/;"	f	class:ChatServer
+analyse_cmd	./chatserver.cpp	/^void ChatServer::analyse_cmd(char *buf, char *cmd, char *arg, bool is_logged)$/;"	f	class:ChatServer
+broadcase	./chatserver.cpp	/^void ChatServer::broadcase(char *msg, int msg_len)$/;"	f	class:ChatServer
+client	./chatserver.h	/^        socklen_t client;$/;"	m	class:ChatServer
+clientaddr	./chatserver.h	/^        struct sockaddr_in servaddr, clientaddr;$/;"	m	class:ChatServer	typeref:struct:ChatServer::
+connfd_index	./chatserver.h	/^    int connfd_index;$/;"	m	struct:_thread_para_t
+cur_connect_num	./chatserver.h	/^        int cur_connect_num;$/;"	m	class:ChatServer
+cur_thread_num	./chatserver.h	/^        int cur_thread_num;$/;"	m	class:ChatServer
+cur_user_num	./chatserver.h	/^        int cur_user_num;$/;"	m	class:ChatServer
+decreaseConnect	./chatserver.h	/^        inline void decreaseConnect()$/;"	f	class:ChatServer
+destroy_connfd	./chatserver.cpp	/^void ChatServer::destroy_connfd(int connfd_index)$/;"	f	class:ChatServer
+epfd	./chatserver.h	/^        int epfd;$/;"	m	class:ChatServer
+ev	./chatserver.h	/^        struct epoll_event ev, events[20];$/;"	m	class:ChatServer	typeref:struct:ChatServer::epoll_event
+events	./chatserver.h	/^        struct epoll_event ev, events[20];$/;"	m	class:ChatServer	typeref:struct:ChatServer::
+get_connfd	./chatserver.cpp	/^int ChatServer::get_connfd(int connfd_index)$/;"	f	class:ChatServer
+get_thread_num	./chatserver.h	/^        inline int get_thread_num()$/;"	f	class:ChatServer
+hasUser	./chatserver.cpp	/^int ChatServer::hasUser(const string &name)$/;"	f	class:ChatServer
+help	./chatserver.cpp	/^void ChatServer::help(char *arg, bool &is_looged, int connfd, ChatServer *p_session, std::string &user_name)$/;"	f	class:ChatServer
+increaseConnect	./chatserver.h	/^        inline void increaseConnect()$/;"	f	class:ChatServer
+initSock	./chatserver.cpp	/^int ChatServer::initSock()$/;"	f	class:ChatServer
+initSock	./client.cpp	/^int initSock(char *ip, int port)$/;"	f
+l_strip	./strtools.cpp	/^char *l_strip(char* &str)$/;"	f
+listenfd	./chatserver.h	/^        int listenfd;$/;"	m	class:ChatServer
+login	./chatserver.cpp	/^void ChatServer::login(char *arg, bool &is_logged, int connfd, ChatServer *p_session, std::string &user_name)$/;"	f	class:ChatServer
+logout	./chatserver.cpp	/^void ChatServer::logout(char *arg, bool &is_logged, int connfd, ChatServer *p_session, std::string &user_name)$/;"	f	class:ChatServer
+look	./chatserver.cpp	/^void ChatServer::look(char *arg, bool &is_logged, int connfd, ChatServer *p_session, std::string &user_name)$/;"	f	class:ChatServer
+m_func	./chatserver.h	/^        std::map<std::string, p_func> m_func;$/;"	m	class:ChatServer
+m_users	./chatserver.h	/^        std::map<int, std::string> m_users; \/\/<connfd, user>$/;"	m	class:ChatServer
+main	./client.cpp	/^int main(int argc, char *argv[])$/;"	f
+main	./main.cpp	/^int main(int argc, char *argv[])$/;"	f
+p_func	./chatserver.h	/^typedef void (ChatServer::*p_func)(char *arg, bool &is_logged, int connfd, ChatServer *p_session, std::string &user_name);$/;"	t
+p_session	./chatserver.h	/^    ChatServer *p_session;$/;"	m	struct:_thread_para_t
+port	./chatserver.h	/^        int port;$/;"	m	class:ChatServer
+r_strip	./strtools.cpp	/^char *r_strip(char* &str)$/;"	f
+recv	./client.cpp	/^void *recv(void *arg)$/;"	f
+removeConnfd	./chatserver.h	/^        inline void removeConnfd(int connfd)$/;"	f	class:ChatServer
+removeUser	./chatserver.cpp	/^void ChatServer::removeUser(int connfd, const string &name, bool is_logged)$/;"	f	class:ChatServer
+run	./chatserver.cpp	/^int ChatServer::run()$/;"	f	class:ChatServer
+s_connfd	./chatserver.h	/^        std::set<int> s_connfd;$/;"	m	class:ChatServer
+s_users	./chatserver.h	/^        std::set<std::string> s_users;$/;"	m	class:ChatServer
+say	./chatserver.cpp	/^void ChatServer::say(char *arg, bool &is_logged, int connfd, ChatServer *p_session, std::string &user_name)$/;"	f	class:ChatServer
+send	./client.cpp	/^void *send(void *arg)$/;"	f
+servaddr	./chatserver.h	/^        struct sockaddr_in servaddr, clientaddr;$/;"	m	class:ChatServer	typeref:struct:ChatServer::sockaddr_in
+setnoblocking	./chatserver.cpp	/^int setnoblocking(int sock)$/;"	f
+split	./strtools.cpp	/^void split(std::vector<char *> &list, char *str, char sep)$/;"	f
+strip	./strtools.cpp	/^char *strip(char* &str)$/;"	f
+thread	./chatserver.h	/^        pthread_t thread[MAX_THREAD_NUM];$/;"	m	class:ChatServer
+thread_para_t	./chatserver.h	/^}thread_para_t;$/;"	t	typeref:struct:_thread_para_t

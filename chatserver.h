@@ -8,10 +8,14 @@
 #include <map>
 #include <set>
 #include <vector>
+#include <netinet/in.h>
+#include <fcntl.h>
+#include <arpa/inet.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <errno.h>
 #include <sys/types.h>
+#include <sys/epoll.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 
@@ -35,10 +39,6 @@ class ChatServer
         std::map<std::string, p_func> m_func;
         ChatServer(int p) : port(p), cur_thread_num(0)
     {
-        for(int i = 0; i < MAX_THREAD_NUM; ++i)
-        {
-            connfd_arr[i] = -1;
-        }
         m_func["login"] = &ChatServer::login;
         m_func["say"] = &ChatServer::say;
         m_func["logout"] = &ChatServer::logout;
@@ -57,19 +57,26 @@ class ChatServer
         void destroy_connfd(int connfd_index);
         int get_valid_connfd_index();
         int hasUser(const std::string &name);
-        void removeUser(int connfd, const std::string &name);
+        void removeUser(int connfd, const std::string &name, bool is_logged);
         void addUser(int connfd, const std::string &name);
         int initSock();
-        static void *talk_thread(void *);
-        inline void decrease_thread()
+        inline void addConnfd(int connfd)
         {
-            --cur_thread_num;
-            DEBUG("decrease_thread called, now thread_num is %d\n", cur_thread_num);
+            s_connfd.insert(connfd);
         }
-        inline void increase_thread()
+        inline void removeConnfd(int connfd)
         {
-            ++cur_thread_num;
-            DEBUG("increase_thread called, now thread_num is %d\n", cur_thread_num);
+            s_connfd.erase(connfd);
+        }
+        inline void increaseConnect()
+        {
+            ++cur_connect_num;
+            DEBUG("increaseConnect called, now connect num is %d\n", cur_connect_num);
+        }
+        inline void decreaseConnect()
+        {
+            --cur_connect_num;
+            DEBUG("decreaseConnect called, now connect num is %d\n", cur_connect_num);
         }
         inline int get_thread_num()
         {
@@ -81,11 +88,16 @@ class ChatServer
         std::map<int, std::string> m_users; //<connfd, user>
         std::set<std::string> s_users;
         pthread_t thread[MAX_THREAD_NUM];
-        struct sockaddr_in servaddr;
+        struct sockaddr_in servaddr, clientaddr;
         int listenfd;
-        int connfd_arr[MAX_THREAD_NUM];
+        std::set<int> s_connfd;
         int cur_thread_num;
         int port;
+        int cur_connect_num;
+        int cur_user_num;
+        int epfd;
+        socklen_t client;
+        struct epoll_event ev, events[20];
 };
 
 typedef struct _thread_para_t
@@ -94,5 +106,6 @@ typedef struct _thread_para_t
     int connfd_index;
 }thread_para_t;
 
+int setnoblock(int);
 #endif
 
