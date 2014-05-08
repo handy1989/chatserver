@@ -168,7 +168,7 @@ void ChatServer::logout(char *arg, bool is_logged, int connfd, ChatServer *p_ses
     }
 }
 
-void ChatServer::help(char *arg, bool &is_looged, int connfd, ChatServer *p_session, std::string &user_name)
+void ChatServer::help(char *arg, bool is_looged, int connfd, ChatServer *p_session, std::string &user_name)
 {
     char ret_buf[MAX_LINE_LEN];
     snprintf(ret_buf, MAX_LINE_LEN, 

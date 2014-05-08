@@ -31,7 +31,7 @@
 
 class ChatServer;
 
-typedef void (ChatServer::*p_func)(char *arg, bool &is_logged, int connfd, ChatServer *p_session, std::string &user_name);
+typedef void (ChatServer::*p_func)(char *arg, bool is_logged, int connfd, ChatServer *p_session, std::string &user_name);
 
 class ChatServer
 {
@@ -45,11 +45,11 @@ class ChatServer
         m_func["look"] = &ChatServer::look;
         m_func["help"] = &ChatServer::help;
     }
-        void login(char *arg, bool &is_logged, int connfd, ChatServer *p_session, std::string &user_name);
-        void say(char *arg, bool &is_looged, int connfd, ChatServer *p_session, std::string &user_name);
-        void logout(char *arg, bool &is_looged, int connfd, ChatServer *p_session, std::string &user_name);
-        void look(char *arg, bool &is_looged, int connfd, ChatServer *p_session, std::string &user_name);
-        void help(char *arg, bool &is_looged, int connfd, ChatServer *p_session, std::string &user_name);
+        void login(char *arg, bool is_logged, int connfd, ChatServer *p_session, std::string &user_name);
+        void say(char *arg, bool is_looged, int connfd, ChatServer *p_session, std::string &user_name);
+        void logout(char *arg, bool is_looged, int connfd, ChatServer *p_session, std::string &user_name);
+        void look(char *arg, bool is_looged, int connfd, ChatServer *p_session, std::string &user_name);
+        void help(char *arg, bool is_looged, int connfd, ChatServer *p_session, std::string &user_name);
         void broadcase(char *msg, int msg_len);
         void analyse_cmd(char *buf, char *cmd, char *arg, bool is_logged);
         int run();
