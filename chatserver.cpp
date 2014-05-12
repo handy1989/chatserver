@@ -53,7 +53,7 @@ int ChatServer::get_connfd(int connfd_index)
 }
 
 
-void ChatServer::login(char *arg, bool &is_logged, int connfd, ChatServer *p_session, std::string &user_name)
+void ChatServer::login(char *arg, bool is_logged, int connfd, ChatServer *p_session, std::string &user_name)
 {
     char ret_buf[MAX_LINE_LEN];
     //snprintf(ret_buf, MAX_LINE_LEN, "your're loggin%c%c", 30, 0);
@@ -75,7 +75,7 @@ void ChatServer::login(char *arg, bool &is_logged, int connfd, ChatServer *p_ses
         user_name = arg;
         snprintf(ret_buf, MAX_LINE_LEN, "%s joins the room!%c%c", arg, 30, 0);
         broadcase(ret_buf, strlen(ret_buf));
-        is_logged = true;
+        setLogged(connfd, true);
     }
     DEBUG("ret_buf[%s]", ret_buf);
 
@@ -99,7 +99,7 @@ void ChatServer::broadcase(char *msg, int msg_len)
     }
 }
 
-void ChatServer::look(char *arg, bool &is_logged, int connfd, ChatServer *p_session, std::string &user_name)
+void ChatServer::look(char *arg, bool is_logged, int connfd, ChatServer *p_session, std::string &user_name)
 {
     DEBUG("look\n");
     char ret_buf[MAX_LINE_LEN];
@@ -124,7 +124,7 @@ void ChatServer::look(char *arg, bool &is_logged, int connfd, ChatServer *p_sess
     }
 }
 
-void ChatServer::say(char *arg, bool &is_logged, int connfd, ChatServer *p_session, std::string &user_name)
+void ChatServer::say(char *arg, bool is_logged, int connfd, ChatServer *p_session, std::string &user_name)
 {
     //send(connfd, "you're saying.", 100, 0);
     DEBUG("saying. log_flag[%d]\n", is_logged);
@@ -147,7 +147,7 @@ void ChatServer::say(char *arg, bool &is_logged, int connfd, ChatServer *p_sessi
     }
 }
 
-void ChatServer::logout(char *arg, bool &is_logged, int connfd, ChatServer *p_session, std::string &user_name)
+void ChatServer::logout(char *arg, bool is_logged, int connfd, ChatServer *p_session, std::string &user_name)
 {
     //send(connfd, "you're logout", 100, 0);
     if (!is_logged)
@@ -164,7 +164,7 @@ void ChatServer::logout(char *arg, bool &is_logged, int connfd, ChatServer *p_se
         send(connfd, ret_buf, strlen(ret_buf), 0);
         snprintf(ret_buf, MAX_LINE_LEN, "[%s] leaves the room!%c%c", user.c_str(), 30, 0);
         broadcase(ret_buf, strlen(ret_buf));
-        is_logged = false;
+		setLogged(connfd, false);
     }
 }
 
@@ -234,7 +234,6 @@ int ChatServer::run()
     char line[MAX_LINE_LEN] = "";
     char ret_buf[MAX_LINE_LEN + 100] = "";
     string user_name;
-    bool is_logged;
     for(;;)
     {
         nfds = epoll_wait(epfd, events, 20, 500);
@@ -291,7 +290,7 @@ int ChatServer::run()
                     DEBUG("connfd[%d] exits!\n", connfd);
                     decreaseConnect();
                     removeConnfd(connfd);
-                    removeUser(connfd, user_name, is_logged);
+                    removeUser(connfd, user_name, isLogged(connfd));
                     close(connfd);
                     events[i].data.fd = -1;
                 }
@@ -305,12 +304,12 @@ int ChatServer::run()
             {
                 DEBUG("now in send\n");
                 connfd = events[i].data.fd;
-                analyse_cmd(line, cmd, cmd_arg, is_logged);
+                analyse_cmd(line, cmd, cmd_arg, isLogged(connfd));
                 DEBUG("cmd[%s] arg[%s]\n", cmd, cmd_arg);
                 std::map<std::string, p_func>::iterator it = m_func.find(cmd);
                 if (it != m_func.end())
                 {
-                    (this->*(it->second))(cmd_arg, is_logged, connfd, this, user_name);
+                    (this->*(it->second))(cmd_arg, isLogged(connfd), connfd, this, user_name);
                 }
                 else
                 {

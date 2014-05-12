@@ -60,13 +60,24 @@ class ChatServer
         void removeUser(int connfd, const std::string &name, bool is_logged);
         void addUser(int connfd, const std::string &name);
         int initSock();
+		inline bool isLogged(int connfd)
+		{
+			std::map<int, bool>::iterator it = m_islogged.find(connfd);
+			return it == m_islogged.end() ? false : m_islogged[connfd];
+		}
+		inline void setLogged(int connfd, bool is_logged)
+		{
+			m_islogged[connfd] = is_logged;
+		}
         inline void addConnfd(int connfd)
         {
             s_connfd.insert(connfd);
+			m_islogged[connfd] = false;
         }
         inline void removeConnfd(int connfd)
         {
             s_connfd.erase(connfd);
+			m_islogged.erase(connfd);
         }
         inline void increaseConnect()
         {
@@ -87,6 +98,7 @@ class ChatServer
     private:
         std::map<int, std::string> m_users; //<connfd, user>
         std::set<std::string> s_users;
+		std::map<int, bool> m_islogged; //<connfd, is_logged>
         pthread_t thread[MAX_THREAD_NUM];
         struct sockaddr_in servaddr, clientaddr;
         int listenfd;
