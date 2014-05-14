@@ -296,6 +296,7 @@ int ChatServer::eventSend(char *line, struct epoll_event &event)
     ev.data.fd = connfd;
     ev.events = EPOLLIN | EPOLLET;
     epoll_ctl(epfd, EPOLL_CTL_MOD, connfd, &ev);
+    return 0;
 }
 
 int ChatServer::run()
