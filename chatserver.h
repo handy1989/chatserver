@@ -53,8 +53,11 @@ class ChatServer
         void broadcase(char *msg, int msg_len);
         void analyse_cmd(char *buf, char *cmd, char *arg, bool is_logged);
         int run();
+        int eventAccept();
+        int eventRecv(char *line, struct epoll_event &event);
+        int eventSend(char *line, struct epoll_event &event);
         int hasUser(const std::string &name);
-        void removeUser(int connfd, const std::string &name, bool is_logged);
+        void removeUser(int connfd,  bool is_logged);
         void addUser(int connfd, const std::string &name);
         int initSock();
         inline bool isLogged(int connfd)

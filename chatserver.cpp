@@ -13,20 +13,6 @@ int setnoblocking(int sock)
         return 0;
     }
     return 1;
-   /* 
-    opts = fcntl(sock, F_GETFL);
-    if (opts < 0)
-    {
-        perror("fcntl(sock, GETFL)");
-        return 1;
-    }
-    opts = opts | O_NONBLOCK;
-    if (fcntl(sock, F_SETFL, opts) < 0)
-    {
-        perror("fcntl(sock, SETFL, opts)");
-        return 1;
-    }
-*/
 }
 
 
@@ -40,16 +26,19 @@ void ChatServer::addUser(int connfd, const string &name)
     m_users[connfd] = name;
     s_users.insert(name);
     ++cur_user_num;
+    DEBUG("add user: connfd[%d] user[%s]\n", connfd, m_users[connfd].c_str());
     DEBUG("new connect, connect num[%d] user num[%d]\n", cur_connect_num, cur_user_num);
 }
 
-void ChatServer::removeUser(int connfd, const string &name, bool is_logged)
+void ChatServer::removeUser(int connfd,  bool is_logged)
 {
     if (is_logged)
     {
+        string user_name = m_users[connfd];
         m_users.erase(connfd);
-        s_users.erase(name);
+        s_users.erase(user_name);
         --cur_user_num;
+        DEBUG("remove connfd[%d], user[%s]\n", connfd, m_users[connfd].c_str());
         DEBUG("new connect, connect num[%d] user num[%d]\n", cur_connect_num, cur_user_num);
     }
 }
@@ -58,8 +47,6 @@ void ChatServer::removeUser(int connfd, const string &name, bool is_logged)
 void ChatServer::login(char *arg, bool is_logged, int connfd, ChatServer *p_session, std::string &user_name)
 {
     char ret_buf[MAX_LINE_LEN];
-    //snprintf(ret_buf, MAX_LINE_LEN, "your're loggin%c%c", 30, 0);
-    //send(connfd, ret_buf, strlen(ret_buf), 0);
     DEBUG("log name[%s]\n", arg);
     if (is_logged)
     {
@@ -79,7 +66,7 @@ void ChatServer::login(char *arg, bool is_logged, int connfd, ChatServer *p_sess
         broadcase(ret_buf, strlen(ret_buf));
         setLogged(connfd, true);
     }
-    DEBUG("ret_buf[%s]", ret_buf);
+    DEBUG("ret_buf[%s]\n", ret_buf);
 
 }
 
@@ -128,7 +115,6 @@ void ChatServer::look(char *arg, bool is_logged, int connfd, ChatServer *p_sessi
 
 void ChatServer::say(char *arg, bool is_logged, int connfd, ChatServer *p_session, std::string &user_name)
 {
-    //send(connfd, "you're saying.", 100, 0);
     DEBUG("saying. log_flag[%d]\n", is_logged);
     char ret_buf[MAX_LINE_LEN];
     int msg_len = 0;
@@ -151,7 +137,6 @@ void ChatServer::say(char *arg, bool is_logged, int connfd, ChatServer *p_sessio
 
 void ChatServer::logout(char *arg, bool is_logged, int connfd, ChatServer *p_session, std::string &user_name)
 {
-    //send(connfd, "you're logout", 100, 0);
     if (!is_logged)
     {
         say(arg, is_logged, connfd, p_session, user_name);
@@ -161,12 +146,12 @@ void ChatServer::logout(char *arg, bool is_logged, int connfd, ChatServer *p_ses
     {
         char ret_buf[MAX_LINE_LEN];
         std::string user = m_users[connfd];
-        removeUser(connfd, user, is_logged);
+        removeUser(connfd, is_logged);
         snprintf(ret_buf, MAX_LINE_LEN, "[%s] logged out.%c%c", user.c_str(), 30, 0);
         send(connfd, ret_buf, strlen(ret_buf), 0);
         snprintf(ret_buf, MAX_LINE_LEN, "[%s] leaves the room!%c%c", user.c_str(), 30, 0);
         broadcase(ret_buf, strlen(ret_buf));
-		setLogged(connfd, false);
+	setLogged(connfd, false);
     }
 }
 
@@ -218,6 +203,100 @@ void ChatServer::analyse_cmd(char *buf, char *cmd, char *arg, bool is_logged)
     }
 }
 
+int ChatServer::eventAccept()
+{
+    char ret_buf[MAX_LINE_LEN + 100] = "";
+    int connfd;
+    int ret;
+    DEBUG("now in accept\n");
+    connfd = accept(listenfd, (sockaddr *)&clientaddr, &client);
+    if (connfd < 0)
+    {
+        fprintf(stderr, "accept failed!\n");
+        return -1;
+    }
+    ret = setnoblocking(connfd);
+    if (ret != 0)
+    {
+        fprintf(stderr, "setnoblock failed!\n");
+        return -1;
+    }
+    char *str = inet_ntoa(clientaddr.sin_addr);
+    DEBUG("connfd[%d], connect from:%s\n", connfd, str);
+    snprintf(ret_buf, MAX_LINE_LEN, "welcom to server!%c%c", 30, 0);
+    send(connfd, ret_buf, strlen(ret_buf), 0);
+    ev.data.fd = connfd;
+    ev.events = EPOLLIN | EPOLLET; 
+    epoll_ctl(epfd, EPOLL_CTL_ADD, connfd, &ev); 
+    addConnfd(connfd); 
+    return 0;
+}
+
+int ChatServer::eventRecv(char *line, struct epoll_event &event)
+{
+    int n = 0;
+    int connfd = 0;
+    DEBUG("now in recv\n");
+    if ((connfd = event.data.fd) < 0)
+    {
+        fprintf(stderr, "connfd[%d] error!\n", connfd);
+        return -1;
+    }
+    if ((n = read(connfd, line, MAX_LINE_LEN)) < 0)
+    {
+        if (errno == ECONNRESET)
+        {
+            removeUser(connfd, isLogged(connfd));
+            removeConnfd(connfd);
+            close(connfd);
+            event.data.fd = -1;
+        }
+        else
+        {
+            fprintf(stderr, "read line error!\n");
+        }
+    }
+    else if(0 == n)
+    {
+        DEBUG("connfd[%d] exits!\n", connfd);
+        removeUser(connfd, isLogged(connfd));
+        removeConnfd(connfd);
+        close(connfd);
+        event.data.fd = -1;
+    }
+    line[n] = 0;
+    DEBUG("recieved: %s\n", line);
+    ev.data.fd = connfd;
+    ev.events = EPOLLOUT | EPOLLET;
+    epoll_ctl(epfd, EPOLL_CTL_MOD, connfd, &ev);
+    return 0;
+}
+
+int ChatServer::eventSend(char *line, struct epoll_event &event)
+{
+    char cmd[MAX_LINE_LEN] = "";
+    char cmd_arg[MAX_LINE_LEN] = "";
+    char ret_buf[MAX_LINE_LEN + 100] = "";
+    int connfd = 0;
+    string user_name;
+    DEBUG("now in send\n");
+    connfd = event.data.fd;
+    analyse_cmd(line, cmd, cmd_arg, isLogged(connfd));
+    DEBUG("cmd[%s] arg[%s]\n", cmd, cmd_arg);
+    std::map<std::string, p_func>::iterator it = m_func.find(cmd);
+    if (it != m_func.end())
+    {
+        (this->*(it->second))(cmd_arg, isLogged(connfd), connfd, this, user_name);
+    }
+    else
+    {
+        snprintf(ret_buf, MAX_LINE_LEN, "cmd error!%c%c", 30, 0);
+        write(connfd, ret_buf, strlen(ret_buf));
+    }
+    ev.data.fd = connfd;
+    ev.events = EPOLLIN | EPOLLET;
+    epoll_ctl(epfd, EPOLL_CTL_MOD, connfd, &ev);
+}
 
 int ChatServer::run()
 {
@@ -231,10 +310,7 @@ int ChatServer::run()
     int maxi = 0;
     int nfds = 0;
     int i = 0, n = 0;
-    char cmd[MAX_LINE_LEN] = "";
-    char cmd_arg[MAX_LINE_LEN] = "";
     char line[MAX_LINE_LEN] = "";
-    char ret_buf[MAX_LINE_LEN + 100] = "";
     string user_name;
     for(;;)
     {
@@ -244,81 +320,24 @@ int ChatServer::run()
             DEBUG("now nfds[%d]\n", nfds);
             if(events[i].data.fd == listenfd)
             {
-                DEBUG("now in accept\n");
-                connfd = accept(listenfd, (sockaddr *)&clientaddr, &client);
-                if (connfd < 0)
+                if (eventAccept() != 0)
                 {
-                    fprintf(stderr, "accept failed!\n");
                     continue;
                 }
-                ret = setnoblocking(connfd);
-                if (ret != 0)
-                {
-                    fprintf(stderr, "setnoblock failed!\n");
-                    continue;
-                }
-                char *str = inet_ntoa(clientaddr.sin_addr);
-                DEBUG("connfd[%d], connect from:%s\n", connfd, str);
-                snprintf(ret_buf, MAX_LINE_LEN, "welcom to server!%c%c", 30, 0);
-                send(connfd, ret_buf, strlen(ret_buf), 0);
-                ev.data.fd = connfd;
-                ev.events = EPOLLIN | EPOLLET; 
-                epoll_ctl(epfd, EPOLL_CTL_ADD, connfd, &ev); 
-                addConnfd(connfd); 
             }
             else if(events[i].events & EPOLLIN)
             {
-                DEBUG("now in recv\n");
-                if ((connfd = events[i].data.fd) < 0)
+                if (eventRecv(line, events[i]) != 0)
                 {
-                    fprintf(stderr, "connfd[%d] error!\n", connfd);
                     continue;
                 }
-                if ((n = read(connfd, line, MAX_LINE_LEN)) < 0)
-                {
-                    if (errno == ECONNRESET)
-                    {
-                        close(connfd);
-                        events[i].data.fd = -1;
-                    }
-                    else
-                    {
-                        fprintf(stderr, "read line error!\n");
-                    }
-                }
-                else if(0 == n)
-                {
-                    DEBUG("connfd[%d] exits!\n", connfd);
-                    removeConnfd(connfd);
-                    removeUser(connfd, user_name, isLogged(connfd));
-                    close(connfd);
-                    events[i].data.fd = -1;
-                }
-                line[n] = 0;
-                DEBUG("recieved: %s\n", line);
-                ev.data.fd = connfd;
-                ev.events = EPOLLOUT | EPOLLET;
-                epoll_ctl(epfd, EPOLL_CTL_MOD, connfd, &ev);
             }
             else if(events[i].events & EPOLLOUT)
             {
-                DEBUG("now in send\n");
-                connfd = events[i].data.fd;
-                analyse_cmd(line, cmd, cmd_arg, isLogged(connfd));
-                DEBUG("cmd[%s] arg[%s]\n", cmd, cmd_arg);
-                std::map<std::string, p_func>::iterator it = m_func.find(cmd);
-                if (it != m_func.end())
+                if (eventSend(line, events[i]) != 0)
                 {
-                    (this->*(it->second))(cmd_arg, isLogged(connfd), connfd, this, user_name);
+                    continue;
                 }
-                else
-                {
-                   snprintf(ret_buf, MAX_LINE_LEN, "cmd error!%c%c", 30, 0);
-                   write(connfd, ret_buf, strlen(ret_buf));
-                }
-                ev.data.fd = connfd;
-                ev.events = EPOLLIN | EPOLLET;
-                epoll_ctl(epfd, EPOLL_CTL_MOD, connfd, &ev);
             }
         }
     }
