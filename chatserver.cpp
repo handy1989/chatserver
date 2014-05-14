@@ -8,6 +8,12 @@ using std::map;
 int setnoblocking(int sock)
 {
     int opts;
+    if ((opts = fcntl(sock, F_GETFL)) >= 0 && fcntl(sock, F_SETFL, opts | O_NONBLOCK) >= 0)
+    {
+        return 0;
+    }
+    return 1;
+   /* 
     opts = fcntl(sock, F_GETFL);
     if (opts < 0)
     {
@@ -20,6 +26,7 @@ int setnoblocking(int sock)
         perror("fcntl(sock, SETFL, opts)");
         return 1;
     }
+*/
 }
 
 
@@ -32,6 +39,8 @@ void ChatServer::addUser(int connfd, const string &name)
 {
     m_users[connfd] = name;
     s_users.insert(name);
+    ++cur_user_num;
+    DEBUG("new connect, connect num[%d] user num[%d]\n", cur_connect_num, cur_user_num);
 }
 
 void ChatServer::removeUser(int connfd, const string &name, bool is_logged)
@@ -40,16 +49,9 @@ void ChatServer::removeUser(int connfd, const string &name, bool is_logged)
     {
         m_users.erase(connfd);
         s_users.erase(name);
+        --cur_user_num;
+        DEBUG("new connect, connect num[%d] user num[%d]\n", cur_connect_num, cur_user_num);
     }
-}
-
-void ChatServer::destroy_connfd(int connfd_index)
-{
-}
-
-int ChatServer::get_connfd(int connfd_index)
-{
-    return 0;
 }
 
 
@@ -58,7 +60,7 @@ void ChatServer::login(char *arg, bool is_logged, int connfd, ChatServer *p_sess
     char ret_buf[MAX_LINE_LEN];
     //snprintf(ret_buf, MAX_LINE_LEN, "your're loggin%c%c", 30, 0);
     //send(connfd, ret_buf, strlen(ret_buf), 0);
-    DEBUG("log name[%s]", arg);
+    DEBUG("log name[%s]\n", arg);
     if (is_logged)
     {
         say(arg, is_logged, connfd, p_session, user_name);
@@ -262,7 +264,6 @@ int ChatServer::run()
                 ev.data.fd = connfd;
                 ev.events = EPOLLIN | EPOLLET; 
                 epoll_ctl(epfd, EPOLL_CTL_ADD, connfd, &ev); 
-                increaseConnect(); 
                 addConnfd(connfd); 
             }
             else if(events[i].events & EPOLLIN)
@@ -288,7 +289,6 @@ int ChatServer::run()
                 else if(0 == n)
                 {
                     DEBUG("connfd[%d] exits!\n", connfd);
-                    decreaseConnect();
                     removeConnfd(connfd);
                     removeUser(connfd, user_name, isLogged(connfd));
                     close(connfd);

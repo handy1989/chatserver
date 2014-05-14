@@ -37,7 +37,7 @@ class ChatServer
 {
     public:
         std::map<std::string, p_func> m_func;
-        ChatServer(int p) : port(p), cur_thread_num(0)
+        ChatServer(int p) : port(p), cur_user_num(0), cur_connect_num(0)
     {
         m_func["login"] = &ChatServer::login;
         m_func["say"] = &ChatServer::say;
@@ -53,57 +53,50 @@ class ChatServer
         void broadcase(char *msg, int msg_len);
         void analyse_cmd(char *buf, char *cmd, char *arg, bool is_logged);
         int run();
-        int get_connfd(int connfd_index);
-        void destroy_connfd(int connfd_index);
-        int get_valid_connfd_index();
         int hasUser(const std::string &name);
         void removeUser(int connfd, const std::string &name, bool is_logged);
         void addUser(int connfd, const std::string &name);
         int initSock();
-		inline bool isLogged(int connfd)
-		{
-			std::map<int, bool>::iterator it = m_islogged.find(connfd);
-			return it == m_islogged.end() ? false : m_islogged[connfd];
-		}
-		inline void setLogged(int connfd, bool is_logged)
-		{
-			m_islogged[connfd] = is_logged;
-		}
+        inline bool isLogged(int connfd)
+        {
+            std::map<int, bool>::iterator it = m_islogged.find(connfd);
+            return it == m_islogged.end() ? false : m_islogged[connfd];
+        }
+        inline void setLogged(int connfd, bool is_logged)
+        {
+            m_islogged[connfd] = is_logged;
+        }
         inline void addConnfd(int connfd)
         {
             s_connfd.insert(connfd);
-			m_islogged[connfd] = false;
+            m_islogged[connfd] = false;
+            ++cur_connect_num;
+            DEBUG("new connect, connect num[%d] user num[%d]\n", cur_connect_num, cur_user_num);
         }
         inline void removeConnfd(int connfd)
         {
             s_connfd.erase(connfd);
-			m_islogged.erase(connfd);
-        }
-        inline void increaseConnect()
-        {
-            ++cur_connect_num;
-            DEBUG("increaseConnect called, now connect num is %d\n", cur_connect_num);
-        }
-        inline void decreaseConnect()
-        {
+            m_islogged.erase(connfd);
             --cur_connect_num;
-            DEBUG("decreaseConnect called, now connect num is %d\n", cur_connect_num);
+            DEBUG("new connect, connect num[%d] user num[%d]\n", cur_connect_num, cur_user_num);
         }
-        inline int get_thread_num()
+        inline int get_user_num()
         {
-            DEBUG("get_thread_num called, now thread_num is %d\n", cur_thread_num);
-            return cur_thread_num;
+            return cur_user_num;
+        }
+        inline int get_connect_num()
+        {
+            return cur_connect_num;
         }
 
     private:
         std::map<int, std::string> m_users; //<connfd, user>
         std::set<std::string> s_users;
-		std::map<int, bool> m_islogged; //<connfd, is_logged>
-        pthread_t thread[MAX_THREAD_NUM];
+        std::map<int, bool> m_islogged; //<connfd, is_logged>
+        //pthread_t thread[MAX_THREAD_NUM];
         struct sockaddr_in servaddr, clientaddr;
         int listenfd;
         std::set<int> s_connfd;
-        int cur_thread_num;
         int port;
         int cur_connect_num;
         int cur_user_num;
