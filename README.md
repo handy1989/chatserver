@@ -14,7 +14,7 @@ logout # 退出
 其他输入均当做message发出去  
 
 =====
-**update 1.0.2**
+**update 1.0.2**  
 服务端改成epoll模型，省去自己管理线程的麻烦，且为非阻塞，提高效率
 主要改动为chatserver.cpp的run函数
 **update 1.0.1**  
